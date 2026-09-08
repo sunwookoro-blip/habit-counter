@@ -1,0 +1,17 @@
+{
+  "name": "습관 카운터",
+  "short_name": "습관 카운터",
+  "description": "습관을 손쉽게 세는 탭 기반 계수기. 하루 단위 기록과 통계를 로컬에 저장합니다.",
+  "lang": "ko",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a1310",
+  "theme_color": "#0a1310",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
