@@ -114,9 +114,8 @@
   .ghost{background:var(--surface-2); border:1px solid var(--line); color:var(--text); border-radius:14px; padding:13px 18px; font-weight:650; font-size:14.5px;}
 
   /* FAB */
-  .fab{position:fixed; right:calc(50% - 280px + 20px); bottom:calc(var(--safe-bot) + 80px); width:60px; height:60px; border-radius:20px; background:var(--green); color:#06120d; font-size:32px; font-weight:400; display:grid; place-items:center; box-shadow:0 10px 30px rgba(67,217,163,.35); z-index:30;}
-  .fab:active{transform:scale(.92);}
-  @media(max-width:600px){ .fab{right:22px;} }
+  nav.tabs button.tab-add{flex:0 0 auto; align-self:center; width:46px; height:46px; min-width:46px; margin:-8px 12px 0; padding:0; border-radius:15px; background:var(--green); color:#06120d; font-size:28px; font-weight:400; display:flex; align-items:center; justify-content:center; gap:0; box-shadow:0 6px 16px rgba(67,217,163,.4);}
+  nav.tabs button.tab-add:active{transform:scale(.92);}
 
   /* Sheet / modal */
   .scrim{position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:40; opacity:0; pointer-events:none; transition:opacity .22s ease;}
@@ -232,10 +231,9 @@
   <main id="main"></main>
 </div>
 
-<button class="fab" id="fab" aria-label="새 계수기">+</button>
-
 <nav class="tabs">
   <button data-tab="home" class="active" id="tabHome"><span class="ti">◎</span>홈</button>
+  <button class="tab-add" id="fab" aria-label="새 계수기">+</button>
   <button data-tab="history" id="tabHist"><span class="ti">▤</span>기록</button>
 </nav>
 
@@ -565,7 +563,7 @@ function bestOf(c){ const r=state.records[c.id]||{}; let b=1; for(const k in r) 
 /* ---------- routing ---------- */
 function render(){
   if(currentTab==="home") renderHome(); else renderHistory();
-  document.getElementById("fab").style.display = currentTab==="home" ? "grid" : "none";
+  const fb=document.getElementById("fab"); if(fb) fb.style.display="flex";
 }
 function setTab(t){
   currentTab = t;
@@ -754,7 +752,7 @@ function renderMenu(){
     </div>
     <hr class="sep">
     <div style="color:var(--muted); font-size:12.5px; line-height:1.6;">
-      습관 카운터 · <b style="color:var(--green)">v9</b> · 로컬 전용 · 로그인/서버 없이 이 기기에만 저장됩니다.<br>
+      습관 카운터 · <b style="color:var(--green)">v10</b> · 로컬 전용 · 로그인/서버 없이 이 기기에만 저장됩니다.<br>
       저장 상태: <b style="color:${storageOK?"var(--green)":"var(--danger)"}">${storageOK?"정상":"제한됨"}</b>
     </div>
   `;
@@ -931,7 +929,7 @@ document.getElementById("fab").onclick = ()=>openSheet();
 document.getElementById("menuBtn").onclick = openMenu;
 document.getElementById("scrim").onclick = closeSheet;
 document.getElementById("sheetClose").onclick = closeSheet;
-document.querySelectorAll("nav.tabs button").forEach(b=> b.onclick=()=>setTab(b.dataset.tab));
+document.querySelectorAll("nav.tabs button[data-tab]").forEach(b=> b.onclick=()=>setTab(b.dataset.tab));
 
 /* re-render on day rollover / focus so daily counters visually reset */
 let lastDayCheck = logicalDay(4);
