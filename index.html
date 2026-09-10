@@ -177,8 +177,9 @@
   .cal-head .cm{font-size:14.5px; font-weight:700;}
   .cal-nav{width:34px; height:34px; border-radius:10px; background:var(--surface-2); border:1px solid var(--line-soft); display:grid; place-items:center; font-size:16px;}
   .cal-grid{display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:5px;}
+  .cal-cells{grid-auto-rows:42px;}
   .cal-dow{text-align:center; font-size:10.5px; color:var(--muted-2); font-weight:700; padding-bottom:2px;}
-  .cell{aspect-ratio:1; min-width:0; border-radius:9px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:11px; background:var(--surface-2); border:1px solid transparent; position:relative;}
+  .cell{min-width:0; border-radius:9px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:11px; background:var(--surface-2); border:1px solid transparent; position:relative;}
   .cell.empty{background:transparent;}
   .cell .cd{font-size:9.5px; color:var(--muted-2); position:absolute; top:3px; left:4px;}
   .cell .cv{font-weight:800; font-size:13px; font-variant-numeric:tabular-nums;}
@@ -211,6 +212,7 @@
     .stat{padding:12px 12px;}
     .stat .sv{font-size:20px;}
     .cal-grid{gap:4px;}
+    .cal-cells{grid-auto-rows:40px;}
     .cell .cv{font-size:12px;}
     .bars{gap:4px;}
   }
@@ -555,7 +557,7 @@ function calendarHTML(c){
       <button class="cal-nav" data-cal="1">›</button>
     </div>
     <div class="cal-grid">${dows}</div>
-    <div class="cal-grid" style="margin-top:5px;">${cells}</div>
+    <div class="cal-grid cal-cells" style="margin-top:5px;">${cells}</div>
   </div>`;
 }
 function bestOf(c){ const r=state.records[c.id]||{}; let b=1; for(const k in r) if(r[k]>b)b=r[k]; return b; }
@@ -752,7 +754,7 @@ function renderMenu(){
     </div>
     <hr class="sep">
     <div style="color:var(--muted); font-size:12.5px; line-height:1.6;">
-      습관 카운터 · <b style="color:var(--green)">v7</b> · 로컬 전용 · 로그인/서버 없이 이 기기에만 저장됩니다.<br>
+      습관 카운터 · <b style="color:var(--green)">v9</b> · 로컬 전용 · 로그인/서버 없이 이 기기에만 저장됩니다.<br>
       저장 상태: <b style="color:${storageOK?"var(--green)":"var(--danger)"}">${storageOK?"정상":"제한됨"}</b>
     </div>
   `;
