@@ -137,6 +137,16 @@
   .segbtn{flex:1; padding:12px; border-radius:12px; background:var(--surface-2); border:1px solid var(--line); font-size:14.5px; font-weight:650; color:var(--muted);}
   .segbtn.on{background:var(--surface-3); border-color:var(--green); color:var(--text);}
   .segbtn:active{transform:scale(.97);}
+  .daysel{display:flex; gap:6px;}
+  .dbtn{flex:1; padding:9px 0; border-radius:10px; background:var(--surface-2); border:1px solid var(--line-soft); font-size:13px; font-weight:650; color:var(--muted);}
+  .dbtn.on{background:var(--surface-3); border-color:var(--green); color:var(--text);}
+  .daypresets{display:flex; gap:6px; margin-top:8px;}
+  .daypreset{flex:1; padding:8px 0; border-radius:9px; background:var(--surface-2); border:1px solid var(--line-soft); font-size:12.5px; font-weight:600; color:var(--muted);}
+  .daypreset:active{transform:scale(.96);}
+  .reorder{flex:none; display:flex; flex-direction:column; margin-left:2px;}
+  .ord-btn{width:24px; height:20px; display:grid; place-items:center; color:var(--muted-2); font-size:12px; border-radius:6px; line-height:1;}
+  .ord-btn:active{background:var(--surface-2); transform:scale(.88);}
+  .card.rest:not(.open){opacity:.45;}
   .swatches{display:flex; flex-wrap:wrap; gap:10px;}
   .sw{width:34px; height:34px; border-radius:50%; border:2px solid transparent; position:relative;}
   .sw.sel{border-color:var(--text); transform:scale(1.08);}
@@ -297,11 +307,20 @@ function change(c, delta){
 }
 
 function metOn(c, dayStr){ const v = dayValue(c, dayStr); return c.goal>0 ? v>=c.goal : v>0; }
+function isActiveDay(c, dateObj){ const days = c.days || [0,1,2,3,4,5,6]; return days.indexOf(dateObj.getDay()) !== -1; }
+function scheduleLabel(c){ const days = c.days || [0,1,2,3,4,5,6]; if(days.length>=7) return ""; return days.slice().sort((a,b)=>a-b).map(d=>DOW[d]).join("·"); }
 function currentStreak(c){
   let cursor = logicalTodayDate(c.resetTime);
-  if(!metOn(c, ymd(cursor))){ cursor.setDate(cursor.getDate()-1); if(!metOn(c, ymd(cursor))) return 0; }
   let n = 0;
-  while(metOn(c, ymd(cursor))){ n++; cursor.setDate(cursor.getDate()-1); }
+  for(let i=0;i<400;i++){
+    const ds = ymd(cursor);
+    if(isActiveDay(c, cursor)){
+      if(metOn(c, ds)) n++;
+      else if(i===0){ /* 오늘 활성일인데 아직 안 함: 끊지 않음 */ }
+      else break;
+    }
+    cursor.setDate(cursor.getDate()-1);
+  }
   return n;
 }
 
@@ -372,22 +391,30 @@ function cardHTML(c){
   const open = expandedId === c.id;
   const streak = currentStreak(c);
   const st = stepFor(c);
+  const sched = scheduleLabel(c);
+  const restToday = !isActiveDay(c, logicalTodayDate(c.resetTime));
   const subParts = [];
+  if(sched) subParts.push(sched);
   if(c.goal>0) subParts.push(c.type==="time" ? `목표 ${fmtTime(c.goal)}` : `목표 ${c.goal}${c.unit||""}`);
   if(streak>0) subParts.push(`<span class="flame">🔥 ${streak}일</span>`);
   if(!c.dailyReset) subParts.push("누적");
+  if(restToday) subParts.push(`<span style="color:var(--muted-2)">오늘 쉼</span>`);
   const sub = subParts.length ? `<div class="sub">${subParts.join(" · ")}</div>` : "";
   const chipDefs = c.type==="time" ? [10,30,60] : [5,10,-5];
   const goalTxt = c.goal>0 ? ` · 목표 ${fmt(c,c.goal)}` : "";
   const unitTxt = (c.type!=="time" && c.unit) ? ` (${esc(c.unit)})` : "";
 
-  return `<div class="card ${open?"open":""}" data-card="${c.id}" style="--cc:${c.color}">
+  return `<div class="card ${open?"open":""} ${restToday?"rest":""}" data-card="${c.id}" style="--cc:${c.color}">
     <div class="spine"></div>
     <div class="row" data-add="${c.id}">
       <button class="minus" data-minus="${c.id}" aria-label="빼기">−</button>
       <div class="emoji">${c.icon || "•"}</div>
       <div class="rtitle"><div class="name">${esc(c.title)}</div>${sub}</div>
       <div class="rval num" data-val="${c.id}">${valHTML(c,val)}</div>
+      <div class="reorder">
+        <button class="ord-btn" data-move="${c.id}" data-dir="-1" aria-label="위로">↑</button>
+        <button class="ord-btn" data-move="${c.id}" data-dir="1" aria-label="아래로">↓</button>
+      </div>
       <button class="chev" data-toggle="${c.id}" aria-label="자세히">▾</button>
     </div>
     <div class="expand">
@@ -412,8 +439,6 @@ function cardHTML(c){
           <button class="mini add" data-amt="${c.id}" data-sign="1">더하기</button>
         </div>
         <div class="expfoot">
-          <button class="tbtn ord" data-move="${c.id}" data-dir="-1" aria-label="위로">↑</button>
-          <button class="tbtn ord" data-move="${c.id}" data-dir="1" aria-label="아래로">↓</button>
           <button class="tbtn" data-hist="${c.id}">▤ 기록</button>
           <button class="tbtn" data-edit="${c.id}">⚙ 편집</button>
         </div>
@@ -441,10 +466,14 @@ function refreshCounter(id){
   const card = document.querySelector(`[data-card="${id}"] .rtitle`);
   if(card){
     const streak = currentStreak(c);
+    const sched = scheduleLabel(c);
+    const restToday = !isActiveDay(c, logicalTodayDate(c.resetTime));
     const parts=[];
+    if(sched) parts.push(sched);
     if(c.goal>0) parts.push(c.type==="time" ? `목표 ${fmtTime(c.goal)}` : `목표 ${c.goal}${c.unit||""}`);
     if(streak>0) parts.push(`<span class="flame">🔥 ${streak}일</span>`);
     if(!c.dailyReset) parts.push("누적");
+    if(restToday) parts.push(`<span style="color:var(--muted-2)">오늘 쉼</span>`);
     let sub = card.querySelector(".sub");
     if(parts.length){
       if(!sub){ sub=document.createElement("div"); sub.className="sub"; card.appendChild(sub); }
@@ -579,10 +608,10 @@ function openSheet(id){
   editingId = id || null;
   if(id){
     const c = counterById(id);
-    draft = { title:c.title, icon:c.icon, color:c.color, unit:c.unit, goal:c.goal, dailyReset:c.dailyReset, resetTime:c.resetTime, type:c.type||"count" };
+    draft = { title:c.title, icon:c.icon, color:c.color, unit:c.unit, goal:c.goal, dailyReset:c.dailyReset, resetTime:c.resetTime, type:c.type||"count", days:(c.days && c.days.length)?c.days.slice():[0,1,2,3,4,5,6] };
     document.getElementById("sheetTitle").textContent = "계수기 편집";
   } else {
-    draft = { title:"", icon:"", color:COLORS[0], unit:"", goal:0, dailyReset:true, resetTime:4, type:"count" };
+    draft = { title:"", icon:"", color:COLORS[0], unit:"", goal:0, dailyReset:true, resetTime:4, type:"count", days:[0,1,2,3,4,5,6] };
     document.getElementById("sheetTitle").textContent = "새 계수기";
   }
   renderSheet();
@@ -633,6 +662,17 @@ function renderSheet(){
         ${COLORS.map(col=>`<button class="sw ${d.color===col?"sel":""}" data-color="${col}" style="background:${col}"></button>`).join("")}
       </div>
     </div>
+    <div class="field">
+      <label>요일 <span class="hint">(선택한 요일만 활성 · 나머지 날은 흐리게)</span></label>
+      <div class="daysel" id="f_days">
+        ${DOW.map((w,idx)=>`<button class="dbtn ${d.days.indexOf(idx)!==-1?"on":""}" data-day="${idx}">${w}</button>`).join("")}
+      </div>
+      <div class="daypresets">
+        <button class="daypreset" data-preset="all">매일</button>
+        <button class="daypreset" data-preset="wd">주5일</button>
+        <button class="daypreset" data-preset="we">주말</button>
+      </div>
+    </div>
     <div class="field" id="unitField" style="${d.type==="time"?"display:none":""}">
       <label>단위 <span class="hint">(선택 · 예: 회, 잔, 개)</span></label>
       <input type="text" id="f_unit" value="${esc(d.unit)}" placeholder="회" maxlength="6" autocomplete="off">
@@ -661,6 +701,19 @@ function renderSheet(){
   // wire fields
   document.getElementById("f_emojis").onclick = e=>{ const b=e.target.closest("[data-emoji]"); if(!b)return; draft.icon=b.dataset.emoji; document.querySelectorAll("#f_emojis .em").forEach(x=>x.classList.toggle("sel", x===b)); };
   document.getElementById("f_colors").onclick = e=>{ const b=e.target.closest("[data-color]"); if(!b)return; draft.color=b.dataset.color; document.querySelectorAll("#f_colors .sw").forEach(x=>x.classList.toggle("sel", x===b)); };
+  document.getElementById("f_days").onclick = e=>{
+    const b=e.target.closest("[data-day]"); if(!b) return;
+    const idx=parseInt(b.dataset.day,10); const pos=draft.days.indexOf(idx);
+    if(pos===-1) draft.days.push(idx); else draft.days.splice(pos,1);
+    b.classList.toggle("on", draft.days.indexOf(idx)!==-1);
+  };
+  const presetsEl=document.querySelector("#sheetBody .daypresets");
+  if(presetsEl) presetsEl.onclick=e=>{
+    const b=e.target.closest("[data-preset]"); if(!b) return;
+    const p=b.dataset.preset;
+    draft.days = p==="wd" ? [1,2,3,4,5] : p==="we" ? [0,6] : [0,1,2,3,4,5,6];
+    document.querySelectorAll("#f_days .dbtn").forEach(x=>x.classList.toggle("on", draft.days.indexOf(parseInt(x.dataset.day,10))!==-1));
+  };
   document.getElementById("f_reset").onclick = e=>{ draft.dailyReset=!draft.dailyReset; e.target.classList.toggle("on",draft.dailyReset); document.getElementById("resetTimeField").style.display=draft.dailyReset?"":"none"; document.getElementById("resetDesc").textContent=draft.dailyReset?"매일 0부터 시작, 어제 값은 기록에 저장":"리셋 없이 계속 누적"; };
   document.getElementById("f_resettime").onchange = e=>{ draft.resetTime=parseInt(e.target.value,10); };
   document.getElementById("f_type").onclick = e=>{
@@ -694,6 +747,7 @@ function saveCounter(){
   draft.title = title;
   draft.unit = document.getElementById("f_unit").value.trim();
   draft.goal = Math.max(0, parseInt(document.getElementById("f_goal").value,10) || 0);
+  if(!draft.days || draft.days.length===0) draft.days = [0,1,2,3,4,5,6];
   if(editingId){
     const c = counterById(editingId);
     Object.assign(c, draft);
@@ -752,7 +806,7 @@ function renderMenu(){
     </div>
     <hr class="sep">
     <div style="color:var(--muted); font-size:12.5px; line-height:1.6;">
-      습관 카운터 · <b style="color:var(--green)">v10</b> · 로컬 전용 · 로그인/서버 없이 이 기기에만 저장됩니다.<br>
+      습관 카운터 · <b style="color:var(--green)">v11</b> · 로컬 전용 · 로그인/서버 없이 이 기기에만 저장됩니다.<br>
       저장 상태: <b style="color:${storageOK?"var(--green)":"var(--danger)"}">${storageOK?"정상":"제한됨"}</b>
     </div>
   `;
@@ -877,9 +931,9 @@ function maybeAutoSync(){
 function seedExamples(){
   const now = Date.now();
   state.counters.push(
-    { id:"c"+(now).toString(36), title:"달리기", icon:"🏃", color:"#43d9a3", unit:"회", goal:0, dailyReset:true, resetTime:4, type:"count", createdAt:now },
-    { id:"c"+(now+1).toString(36), title:"물 마시기", icon:"💧", color:"#38bdf8", unit:"잔", goal:8, dailyReset:true, resetTime:4, type:"count", createdAt:now+1 },
-    { id:"c"+(now+2).toString(36), title:"독서", icon:"📖", color:"#fbbf24", unit:"", goal:30, dailyReset:true, resetTime:4, type:"time", createdAt:now+2 }
+    { id:"c"+(now).toString(36), title:"달리기", icon:"🏃", color:"#43d9a3", unit:"회", goal:0, dailyReset:true, resetTime:4, type:"count", days:[0,1,2,3,4,5,6], createdAt:now },
+    { id:"c"+(now+1).toString(36), title:"물 마시기", icon:"💧", color:"#38bdf8", unit:"잔", goal:8, dailyReset:true, resetTime:4, type:"count", days:[0,1,2,3,4,5,6], createdAt:now+1 },
+    { id:"c"+(now+2).toString(36), title:"독서", icon:"📖", color:"#fbbf24", unit:"", goal:30, dailyReset:true, resetTime:4, type:"time", days:[1,2,3,4,5], createdAt:now+2 }
   );
   save(); render(); toast("예시를 추가했어요");
 }
@@ -893,6 +947,9 @@ main.addEventListener("click", e=>{
   // chevron: toggle expand for details/settings
   const tog = t.closest("[data-toggle]");
   if(tog){ e.stopPropagation(); const id=tog.dataset.toggle; expandedId = (expandedId===id)?null:id; renderHome(); return; }
+  // reorder up/down (collapsed row) — must be before the row-tap handler
+  const mv = t.closest("[data-move]");
+  if(mv){ e.stopPropagation(); const id=mv.dataset.move; const dir=parseInt(mv.dataset.dir,10); const i=state.counters.findIndex(c=>c.id===id); const j=i+dir; if(j>=0&&j<state.counters.length){ const arr=state.counters; [arr[i],arr[j]]=[arr[j],arr[i]]; save(); renderHome(); } return; }
   // tap the counter tile to +1
   const ad = t.closest("[data-add]");
   if(ad){ const id=ad.dataset.add; const c=counterById(id); change(c,stepFor(c)); refreshCounter(id); popVal(id); haptic(8); return; }
@@ -905,9 +962,6 @@ main.addEventListener("click", e=>{
   // amount add/sub
   const am = t.closest("[data-amt]");
   if(am){ const id=am.dataset.amt; const sign=parseInt(am.dataset.sign,10); const inp=document.querySelector(`[data-amtinput="${id}"]`); const n=Math.abs(parseInt(inp.value,10)||0); if(n>0){ change(counterById(id), sign*n); refreshCounter(id); haptic(8); inp.value=""; } return; }
-  // move order
-  const mv = t.closest("[data-move]");
-  if(mv){ const id=mv.dataset.move; const dir=parseInt(mv.dataset.dir,10); const i=state.counters.findIndex(c=>c.id===id); const j=i+dir; if(j>=0&&j<state.counters.length){ const arr=state.counters; [arr[i],arr[j]]=[arr[j],arr[i]]; save(); renderHome(); } return; }
   // go to history for this counter
   const hb = t.closest("[data-hist]");
   if(hb){ histSel=hb.dataset.hist; setTab("history"); return; }
