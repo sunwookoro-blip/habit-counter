@@ -806,7 +806,7 @@ function renderMenu(){
     </div>
     <hr class="sep">
     <div style="color:var(--muted); font-size:12.5px; line-height:1.6;">
-      습관 카운터 · <b style="color:var(--green)">v13</b> · 로컬 전용 · 로그인/서버 없이 이 기기에만 저장됩니다.<br>
+      습관 카운터 · <b style="color:var(--green)">v14</b> · 로컬 전용 · 로그인/서버 없이 이 기기에만 저장됩니다.<br>
       저장 상태: <b style="color:${storageOK?"var(--green)":"var(--danger)"}">${storageOK?"정상":"제한됨"}</b>
     </div>
   `;
@@ -949,11 +949,9 @@ main.addEventListener("click", e=>{
   if(tog){ e.stopPropagation(); const id=tog.dataset.toggle; expandedId = (expandedId===id)?null:id; renderHome();
     if(expandedId===id){ setTimeout(()=>{
       const el=document.querySelector(`[data-card="${id}"]`); if(!el) return;
-      const navH=76, headH=72, vh=window.innerHeight, r=el.getBoundingClientRect();
-      let dy=0;
-      if(r.bottom > vh-navH) dy = r.bottom-(vh-navH);
-      if(r.top-dy < headH) dy = r.top-headH;
-      if(Math.abs(dy)>1) window.scrollBy({top:dy, behavior:"smooth"});
+      const headH=64, r=el.getBoundingClientRect();
+      const dy = r.top - headH;
+      if(Math.abs(dy)>2) window.scrollBy({top:dy, behavior:"smooth"});
     }, 300); }
     return; }
   // reorder up/down (collapsed row) — must be before the row-tap handler
