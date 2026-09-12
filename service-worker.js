@@ -1,5 +1,5 @@
 /* 습관 카운터 · offline app shell */
-const CACHE = "habit-counter-v15";
+const CACHE = "habit-counter-v16";
 const ASSETS = [
   "./",
   "./index.html",
