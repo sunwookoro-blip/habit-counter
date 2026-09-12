@@ -76,8 +76,8 @@
 
   /* Expanded body */
   .expand{max-height:0; opacity:0; overflow:hidden; transition:max-height .28s ease,opacity .2s ease;}
-  .card.open .expand{max-height:520px; opacity:1;}
-  .exp-inner{padding:4px 16px 18px;}
+  .card.open .expand{max-height:640px; opacity:1;}
+  .exp-inner{padding:4px 16px 24px;}
   .bigwrap{display:flex; align-items:center; justify-content:center; gap:18px; padding:10px 0 14px;}
   .ring{flex:none;}
   .big{font-variant-numeric:tabular-nums; font-weight:850; font-size:64px; line-height:1; letter-spacing:-.04em; color:var(--cc,#43d9a3); text-align:center; user-select:none;}
@@ -806,7 +806,7 @@ function renderMenu(){
     </div>
     <hr class="sep">
     <div style="color:var(--muted); font-size:12.5px; line-height:1.6;">
-      습관 카운터 · <b style="color:var(--green)">v12</b> · 로컬 전용 · 로그인/서버 없이 이 기기에만 저장됩니다.<br>
+      습관 카운터 · <b style="color:var(--green)">v13</b> · 로컬 전용 · 로그인/서버 없이 이 기기에만 저장됩니다.<br>
       저장 상태: <b style="color:${storageOK?"var(--green)":"var(--danger)"}">${storageOK?"정상":"제한됨"}</b>
     </div>
   `;
@@ -947,7 +947,14 @@ main.addEventListener("click", e=>{
   // chevron: toggle expand for details/settings
   const tog = t.closest("[data-toggle]");
   if(tog){ e.stopPropagation(); const id=tog.dataset.toggle; expandedId = (expandedId===id)?null:id; renderHome();
-    if(expandedId===id){ setTimeout(()=>{ const el=document.querySelector(`[data-card="${id}"]`); if(el) el.scrollIntoView({behavior:"smooth", block:"center"}); }, 300); }
+    if(expandedId===id){ setTimeout(()=>{
+      const el=document.querySelector(`[data-card="${id}"]`); if(!el) return;
+      const navH=76, headH=72, vh=window.innerHeight, r=el.getBoundingClientRect();
+      let dy=0;
+      if(r.bottom > vh-navH) dy = r.bottom-(vh-navH);
+      if(r.top-dy < headH) dy = r.top-headH;
+      if(Math.abs(dy)>1) window.scrollBy({top:dy, behavior:"smooth"});
+    }, 300); }
     return; }
   // reorder up/down (collapsed row) — must be before the row-tap handler
   const mv = t.closest("[data-move]");
