@@ -60,7 +60,7 @@
   .card.open{border-color:var(--line); box-shadow:var(--shadow);}
   .card .spine{position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--cc,#43d9a3);}
 
-  .row{display:flex; align-items:center; gap:10px; padding:9px 6px 9px 12px; min-height:54px; transition:background .12s ease;}
+  .row{display:flex; align-items:center; gap:8px; padding:9px 6px 9px 4px; min-height:54px; transition:background .12s ease;}
   .row:active{background:var(--surface-2);}
   .row .emoji{font-size:20px; width:24px; text-align:center; flex:none; line-height:1;}
   .row .rtitle{min-width:0; flex:1; display:flex; flex-direction:column; justify-content:center;}
@@ -409,11 +409,11 @@ function cardHTML(c){
   return `<div class="card ${open?"open":""} ${restToday?"rest":""}" data-card="${c.id}" style="--cc:${c.color}">
     <div class="spine"></div>
     <div class="row" data-add="${c.id}">
+      <button class="drag" data-drag="${c.id}" aria-label="순서 이동">≡</button>
       <button class="minus" data-minus="${c.id}" aria-label="빼기">−</button>
       <div class="emoji">${c.icon || "•"}</div>
       <div class="rtitle"><div class="name">${esc(c.title)}</div>${sub}</div>
       <div class="rval num" data-val="${c.id}">${valHTML(c,val)}</div>
-      <button class="drag" data-drag="${c.id}" aria-label="순서 이동">≡</button>
       <button class="chev" data-toggle="${c.id}" aria-label="자세히">▾</button>
     </div>
     <div class="expand">
@@ -808,7 +808,7 @@ function renderMenu(){
     </div>
     <hr class="sep">
     <div style="color:var(--muted); font-size:12.5px; line-height:1.6;">
-      습관 카운터 · <b style="color:var(--green)">v17</b> · 로컬 전용 · 로그인/서버 없이 이 기기에만 저장됩니다.<br>
+      습관 카운터 · <b style="color:var(--green)">v18</b> · 로컬 전용 · 로그인/서버 없이 이 기기에만 저장됩니다.<br>
       저장 상태: <b style="color:${storageOK?"var(--green)":"var(--danger)"}">${storageOK?"정상":"제한됨"}</b>
     </div>
   `;
