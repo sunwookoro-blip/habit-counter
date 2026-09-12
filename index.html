@@ -48,7 +48,7 @@
   .icon-btn{width:40px; height:40px; border-radius:13px; background:var(--surface-2); display:grid; place-items:center; font-size:19px; border:1px solid var(--line-soft);}
   .icon-btn:active{transform:scale(.94);}
 
-  main{flex:1; padding:4px 14px 120px;}
+  main{flex:1; padding:4px 14px calc(var(--safe-bot) + 150px);}
 
   /* Collapsed list */
   .list{display:flex; flex-direction:column; gap:8px;}
@@ -213,7 +213,7 @@
   .link{color:var(--green); font-weight:650;}
 
   @media (max-width:400px){
-    main{padding:4px 10px 120px;}
+    main{padding:4px 10px calc(var(--safe-bot) + 150px);}
     header.top{padding-left:14px; padding-right:14px;}
     header.top h1{font-size:19px;}
     .panel{padding:14px 12px;}
@@ -806,7 +806,7 @@ function renderMenu(){
     </div>
     <hr class="sep">
     <div style="color:var(--muted); font-size:12.5px; line-height:1.6;">
-      습관 카운터 · <b style="color:var(--green)">v11</b> · 로컬 전용 · 로그인/서버 없이 이 기기에만 저장됩니다.<br>
+      습관 카운터 · <b style="color:var(--green)">v12</b> · 로컬 전용 · 로그인/서버 없이 이 기기에만 저장됩니다.<br>
       저장 상태: <b style="color:${storageOK?"var(--green)":"var(--danger)"}">${storageOK?"정상":"제한됨"}</b>
     </div>
   `;
@@ -946,7 +946,9 @@ main.addEventListener("click", e=>{
   if(mn){ e.stopPropagation(); const id=mn.dataset.minus; const c=counterById(id); change(c,-stepFor(c)); refreshCounter(id); popVal(id); haptic(6); return; }
   // chevron: toggle expand for details/settings
   const tog = t.closest("[data-toggle]");
-  if(tog){ e.stopPropagation(); const id=tog.dataset.toggle; expandedId = (expandedId===id)?null:id; renderHome(); return; }
+  if(tog){ e.stopPropagation(); const id=tog.dataset.toggle; expandedId = (expandedId===id)?null:id; renderHome();
+    if(expandedId===id){ setTimeout(()=>{ const el=document.querySelector(`[data-card="${id}"]`); if(el) el.scrollIntoView({behavior:"smooth", block:"center"}); }, 300); }
+    return; }
   // reorder up/down (collapsed row) — must be before the row-tap handler
   const mv = t.closest("[data-move]");
   if(mv){ e.stopPropagation(); const id=mv.dataset.move; const dir=parseInt(mv.dataset.dir,10); const i=state.counters.findIndex(c=>c.id===id); const j=i+dir; if(j>=0&&j<state.counters.length){ const arr=state.counters; [arr[i],arr[j]]=[arr[j],arr[i]]; save(); renderHome(); } return; }
