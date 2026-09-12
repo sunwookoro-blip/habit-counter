@@ -38,8 +38,9 @@
 
   /* Header */
   header.top{
-    position:sticky; top:0; z-index:20; background:linear-gradient(180deg,var(--bg) 72%,transparent);
+    position:sticky; top:0; z-index:30; background:var(--bg);
     padding:calc(var(--safe-top) + 14px) 18px 10px; display:flex; align-items:flex-end; justify-content:space-between; gap:10px;
+    transform:translateZ(0); -webkit-transform:translateZ(0);
   }
   header.top .titles{min-width:0;}
   header.top h1{margin:0; font-size:21px; font-weight:800; letter-spacing:-.02em;}
@@ -806,7 +807,7 @@ function renderMenu(){
     </div>
     <hr class="sep">
     <div style="color:var(--muted); font-size:12.5px; line-height:1.6;">
-      습관 카운터 · <b style="color:var(--green)">v14</b> · 로컬 전용 · 로그인/서버 없이 이 기기에만 저장됩니다.<br>
+      습관 카운터 · <b style="color:var(--green)">v15</b> · 로컬 전용 · 로그인/서버 없이 이 기기에만 저장됩니다.<br>
       저장 상태: <b style="color:${storageOK?"var(--green)":"var(--danger)"}">${storageOK?"정상":"제한됨"}</b>
     </div>
   `;
@@ -951,7 +952,7 @@ main.addEventListener("click", e=>{
       const el=document.querySelector(`[data-card="${id}"]`); if(!el) return;
       const headH=64, r=el.getBoundingClientRect();
       const dy = r.top - headH;
-      if(Math.abs(dy)>2) window.scrollBy({top:dy, behavior:"smooth"});
+      if(Math.abs(dy)>2) window.scrollBy({top:dy, behavior:"auto"});
     }, 300); }
     return; }
   // reorder up/down (collapsed row) — must be before the row-tap handler
