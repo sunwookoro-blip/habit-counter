@@ -23,7 +23,7 @@
     --safe-top:env(safe-area-inset-top); --safe-bot:env(safe-area-inset-bottom);
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-  html,body{margin:0;height:100%;max-width:100%;overflow-x:hidden;}
+  html,body{margin:0;height:100%;max-width:100%;overflow:hidden;}
   body{
     background:var(--bg); color:var(--text);
     font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo",system-ui,"Segoe UI",Roboto,sans-serif;
@@ -34,13 +34,12 @@
   button{font-family:inherit; color:inherit; border:none; background:none; cursor:pointer;}
   input,select{font-family:inherit; color:inherit;}
 
-  #app{max-width:560px; width:100%; margin:0 auto; min-height:100%; display:flex; flex-direction:column; overflow-x:hidden;}
+  #app{max-width:560px; width:100%; margin:0 auto; height:100%; display:flex; flex-direction:column; overflow:hidden;}
 
   /* Header */
   header.top{
-    position:sticky; top:0; z-index:30; background:var(--bg);
+    flex:none; position:relative; z-index:2; background:var(--bg);
     padding:calc(var(--safe-top) + 14px) 18px 10px; display:flex; align-items:flex-end; justify-content:space-between; gap:10px;
-    transform:translateZ(0); -webkit-transform:translateZ(0);
   }
   header.top .titles{min-width:0;}
   header.top h1{margin:0; font-size:21px; font-weight:800; letter-spacing:-.02em;}
@@ -49,7 +48,7 @@
   .icon-btn{width:40px; height:40px; border-radius:13px; background:var(--surface-2); display:grid; place-items:center; font-size:19px; border:1px solid var(--line-soft);}
   .icon-btn:active{transform:scale(.94);}
 
-  main{flex:1; padding:4px 14px calc(var(--safe-bot) + 150px);}
+  main{flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:4px 14px calc(var(--safe-bot) + 20px);}
 
   /* Collapsed list */
   .list{display:flex; flex-direction:column; gap:8px;}
@@ -201,7 +200,7 @@
   .toast.on{opacity:1; transform:translateX(-50%) translateY(0);}
 
   /* Bottom tab bar */
-  nav.tabs{position:fixed; left:0; right:0; bottom:0; z-index:40; max-width:560px; margin:0 auto; display:flex; background:color-mix(in srgb,var(--bg) 96%,transparent); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border-top:1px solid var(--line-soft); padding-bottom:max(3px, calc(var(--safe-bot) - 20px)); transform:translateZ(0); -webkit-transform:translateZ(0); will-change:transform;}
+  nav.tabs{flex:none; display:flex; background:var(--bg); border-top:1px solid var(--line-soft); padding-bottom:max(3px, calc(var(--safe-bot) - 20px));}
   nav.tabs button{flex:1; padding:6px 0; display:flex; flex-direction:row; align-items:center; justify-content:center; gap:7px; color:var(--muted-2); font-size:12.5px; font-weight:650;}
   nav.tabs button .ti{font-size:16px; line-height:1;}
   nav.tabs button.active{color:var(--green);}
@@ -215,7 +214,7 @@
   .link{color:var(--green); font-weight:650;}
 
   @media (max-width:400px){
-    main{padding:4px 10px calc(var(--safe-bot) + 150px);}
+    main{padding:4px 10px calc(var(--safe-bot) + 20px);}
     header.top{padding-left:14px; padding-right:14px;}
     header.top h1{font-size:19px;}
     .panel{padding:14px 12px;}
@@ -241,13 +240,12 @@
     </div>
   </header>
   <main id="main"></main>
+  <nav class="tabs">
+    <button data-tab="home" class="active" id="tabHome"><span class="ti">◎</span>홈</button>
+    <button class="tab-add" id="fab" aria-label="새 계수기">+</button>
+    <button data-tab="history" id="tabHist"><span class="ti">▤</span>기록</button>
+  </nav>
 </div>
-
-<nav class="tabs">
-  <button data-tab="home" class="active" id="tabHome"><span class="ti">◎</span>홈</button>
-  <button class="tab-add" id="fab" aria-label="새 계수기">+</button>
-  <button data-tab="history" id="tabHist"><span class="ti">▤</span>기록</button>
-</nav>
 
 <div class="scrim" id="scrim"></div>
 <div class="sheet" id="sheet">
@@ -808,7 +806,7 @@ function renderMenu(){
     </div>
     <hr class="sep">
     <div style="color:var(--muted); font-size:12.5px; line-height:1.6;">
-      습관 카운터 · <b style="color:var(--green)">v18</b> · 로컬 전용 · 로그인/서버 없이 이 기기에만 저장됩니다.<br>
+      습관 카운터 · <b style="color:var(--green)">v19</b> · 로컬 전용 · 로그인/서버 없이 이 기기에만 저장됩니다.<br>
       저장 상태: <b style="color:${storageOK?"var(--green)":"var(--danger)"}">${storageOK?"정상":"제한됨"}</b>
     </div>
   `;
