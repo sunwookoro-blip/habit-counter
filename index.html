@@ -292,21 +292,24 @@ function todayValue(c){ return dayValue(c, logicalDay(c.resetTime)); }
 function totalValue(c){ const r = state.records[c.id]||{}; let s=0; for(const k in r) s += r[k]; return s; }
 function displayValue(c){ return c.dailyReset ? todayValue(c) : totalValue(c); }
 function displayLabel(c){ return c.dailyReset ? "오늘" : "누적"; }
-function stepFor(c){ return c.type==="time" ? 10 : 1; }
-function unitFor(c){ return c.type==="time" ? "분" : (c.unit||""); }
+function stepFor(c){ return c.type==="time" ? 10 : c.type==="distance" ? 0.5 : 1; }
+function unitFor(c){ return c.type==="time" ? "분" : c.type==="distance" ? "km" : (c.unit||""); }
 function fmtTime(m){ m=Math.round(m); if(m<60) return m+"분"; const h=Math.floor(m/60), r=m%60; return r ? `${h}시간 ${r}분` : `${h}시간`; }
-function fmt(c, v){ return c.type==="time" ? fmtTime(v) : String(v); }
-function valHTML(c, v){ if(c.type==="time") return fmtTime(v); return v + (c.unit ? `<span class="u">${esc(c.unit)}</span>` : ""); }
+function fmtDist(v){ const n=Math.round(v*10)/10; return (Number.isInteger(n)? n : n.toFixed(1)) + "km"; }
+function fmt(c, v){ return c.type==="time" ? fmtTime(v) : c.type==="distance" ? fmtDist(v) : String(v); }
+function valHTML(c, v){ if(c.type==="time") return fmtTime(v); if(c.type==="distance") return fmtDist(v); return v + (c.unit ? `<span class="u">${esc(c.unit)}</span>` : ""); }
 
 function change(c, delta){
   const day = logicalDay(c.resetTime);
   const r = recFor(c.id);
-  const next = Math.max(0, (r[day]||0) + delta);
+  const next = Math.max(0, Math.round(((r[day]||0) + delta)*100)/100);
   if(next === 0) delete r[day]; else r[day] = next;
   save();
 }
 
 function metOn(c, dayStr){ const v = dayValue(c, dayStr); return c.goal>0 ? v>=c.goal : v>0; }
+function segHintFor(ty){ return ty==="time" ? "분 단위로 기록 · 탭 +10분, 프리셋 10/30/60분" : ty==="distance" ? "km 단위로 기록 · 탭 +0.5km, 프리셋 1/3/5km" : "1씩 세기 · 탭 +1"; }
+function goalHintFor(ty){ return ty==="time" ? "(선택 · 분, 0 = 없음)" : ty==="distance" ? "(선택 · km, 0 = 없음)" : "(선택 · 0 = 없음, 진행률/연속 기준)"; }
 function isActiveDay(c, dateObj){ const days = c.days || [0,1,2,3,4,5,6]; return days.indexOf(dateObj.getDay()) !== -1; }
 function scheduleLabel(c){ const days = c.days || [0,1,2,3,4,5,6]; if(days.length>=7) return ""; return days.slice().sort((a,b)=>a-b).map(d=>DOW[d]).join("·"); }
 function currentStreak(c){
@@ -400,9 +403,10 @@ function cardHTML(c){
   if(!c.dailyReset) subParts.push("누적");
   if(restToday) subParts.push(`<span style="color:var(--muted-2)">오늘 쉼</span>`);
   const sub = subParts.length ? `<div class="sub">${subParts.join(" · ")}</div>` : "";
-  const chipDefs = c.type==="time" ? [10,30,60] : [5,10,-5];
+  const chipDefs = c.type==="time" ? [10,30,60] : c.type==="distance" ? [1,3,5] : [5,10,-5];
+  const chipU = c.type==="time" ? "분" : c.type==="distance" ? "km" : "";
   const goalTxt = c.goal>0 ? ` · 목표 ${fmt(c,c.goal)}` : "";
-  const unitTxt = (c.type!=="time" && c.unit) ? ` (${esc(c.unit)})` : "";
+  const unitTxt = (c.type!=="time" && c.type!=="distance" && c.unit) ? ` (${esc(c.unit)})` : "";
 
   return `<div class="card ${open?"open":""} ${restToday?"rest":""}" data-card="${c.id}" style="--cc:${c.color}">
     <div class="spine"></div>
@@ -428,11 +432,11 @@ function cardHTML(c){
           <button class="stepper plus" data-step="${c.id}" data-delta="${st}">＋</button>
         </div>
         <div class="chips">
-          ${chipDefs.map(n=>`<button class="chip" data-step="${c.id}" data-delta="${n}">${n>0?"+":"−"}${Math.abs(n)}${c.type==="time"?"분":""}</button>`).join("")}
+          ${chipDefs.map(n=>`<button class="chip" data-step="${c.id}" data-delta="${n}">${n>0?"+":"−"}${Math.abs(n)}${chipU}</button>`).join("")}
         </div>
         <div class="amt">
           <button class="mini sub" data-amt="${c.id}" data-sign="-1">빼기</button>
-          <input type="number" inputmode="numeric" min="1" placeholder="${c.type==="time"?"분":"수량"}" data-amtinput="${c.id}">
+          <input type="number" inputmode="${c.type==="distance"?"decimal":"numeric"}" ${c.type==="distance"?'step="0.1" min="0.1"':'min="1"'} placeholder="${c.type==="time"?"분":c.type==="distance"?"km":"수량"}" data-amtinput="${c.id}">
           <button class="mini add" data-amt="${c.id}" data-sign="1">더하기</button>
         </div>
         <div class="expfoot">
@@ -540,7 +544,7 @@ function renderHistory(){
       <div class="blab">${d.getDate()}</div>
     </div>`;
   });
-  const barPanel = `<div class="panel"><h4>최근 14일${c.type==="time"?" (분)":""}</h4><div class="bars">${bars}</div></div>`;
+  const barPanel = `<div class="panel"><h4>최근 14일${c.type==="time"?" (분)":c.type==="distance"?" (km)":""}</h4><div class="bars">${bars}</div></div>`;
 
   // calendar
   if(calYear==null){ calYear=tdate.getFullYear(); calMonth=tdate.getMonth(); }
@@ -653,10 +657,11 @@ function renderSheet(){
     <div class="field">
       <label>유형</label>
       <div class="seg" id="f_type">
-        <button class="segbtn ${d.type!=="time"?"on":""}" data-type="count">횟수형</button>
+        <button class="segbtn ${(d.type!=="time"&&d.type!=="distance")?"on":""}" data-type="count">횟수형</button>
         <button class="segbtn ${d.type==="time"?"on":""}" data-type="time">시간형</button>
+        <button class="segbtn ${d.type==="distance"?"on":""}" data-type="distance">거리형</button>
       </div>
-      <div class="hint" id="segHint" style="margin-top:6px">${d.type==="time"?"분 단위로 기록 · 탭 +10분, 프리셋 10/30/60분":"1씩 세기 · 탭 +1"}</div>
+      <div class="hint" id="segHint" style="margin-top:6px">${segHintFor(d.type)}</div>
     </div>
     <div class="field">
       <label>이모지 <span class="hint">(선택)</span></label>
@@ -682,13 +687,13 @@ function renderSheet(){
         <button class="daypreset" data-preset="we">주말</button>
       </div>
     </div>
-    <div class="field" id="unitField" style="${d.type==="time"?"display:none":""}">
+    <div class="field" id="unitField" style="${(d.type==="time"||d.type==="distance")?"display:none":""}">
       <label>단위 <span class="hint">(선택 · 예: 회, 잔, 개)</span></label>
       <input type="text" id="f_unit" value="${esc(d.unit)}" placeholder="회" maxlength="6" autocomplete="off">
     </div>
     <div class="field">
-      <label>하루 목표 <span class="hint" id="goalHint">${d.type==="time"?"(선택 · 분, 0 = 없음)":"(선택 · 0 = 없음, 진행률/연속 기준)"}</span></label>
-      <input type="number" id="f_goal" value="${d.goal||""}" placeholder="예: 30" min="0" inputmode="numeric">
+      <label>하루 목표 <span class="hint" id="goalHint">${goalHintFor(d.type)}</span></label>
+      <input type="number" id="f_goal" value="${d.goal||""}" placeholder="${d.type==="distance"?"예: 5":"예: 30"}" min="0" inputmode="${d.type==="distance"?"decimal":"numeric"}" ${d.type==="distance"?'step="0.1"':""}>
     </div>
     <div class="field">
       <div class="toggle-row">
@@ -729,9 +734,12 @@ function renderSheet(){
     const b=e.target.closest("[data-type]"); if(!b) return;
     draft.type=b.dataset.type;
     document.querySelectorAll("#f_type .segbtn").forEach(x=>x.classList.toggle("on",x===b));
-    document.getElementById("unitField").style.display = draft.type==="time"?"none":"";
-    document.getElementById("goalHint").textContent = draft.type==="time"?"(선택 · 분, 0 = 없음)":"(선택 · 0 = 없음, 진행률/연속 기준)";
-    document.getElementById("segHint").textContent = draft.type==="time"?"분 단위로 기록 · 탭 +10분, 프리셋 10/30/60분":"1씩 세기 · 탭 +1";
+    document.getElementById("unitField").style.display = (draft.type==="time"||draft.type==="distance")?"none":"";
+    document.getElementById("goalHint").textContent = goalHintFor(draft.type);
+    document.getElementById("segHint").textContent = segHintFor(draft.type);
+    const gi=document.getElementById("f_goal");
+    if(draft.type==="distance"){ gi.setAttribute("inputmode","decimal"); gi.setAttribute("step","0.1"); gi.placeholder="예: 5"; }
+    else { gi.setAttribute("inputmode","numeric"); gi.removeAttribute("step"); gi.placeholder="예: 30"; }
   };
   document.getElementById("f_save").onclick = saveCounter;
   if(editingId){
@@ -755,7 +763,7 @@ function saveCounter(){
   if(!title){ toast("제목을 입력해 주세요"); document.getElementById("f_title").focus(); return; }
   draft.title = title;
   draft.unit = document.getElementById("f_unit").value.trim();
-  draft.goal = Math.max(0, parseInt(document.getElementById("f_goal").value,10) || 0);
+  draft.goal = Math.max(0, parseFloat(document.getElementById("f_goal").value) || 0);
   if(!draft.days || draft.days.length===0) draft.days = [0,1,2,3,4,5,6];
   if(editingId){
     const c = counterById(editingId);
@@ -814,7 +822,7 @@ function renderMenu(){
     </div>
     <hr class="sep">
     <div style="color:var(--muted); font-size:12.5px; line-height:1.6;">
-      습관 카운터 · <b style="color:var(--green)">v20</b> · 로컬 전용 · 로그인/서버 없이 이 기기에만 저장됩니다.<br>
+      습관 카운터 · <b style="color:var(--green)">v21</b> · 로컬 전용 · 로그인/서버 없이 이 기기에만 저장됩니다.<br>
       저장 상태: <b style="color:${storageOK?"var(--green)":"var(--danger)"}">${storageOK?"정상":"제한됨"}</b>
     </div>
   `;
@@ -939,7 +947,7 @@ function maybeAutoSync(){
 function seedExamples(){
   const now = Date.now();
   state.counters.push(
-    { id:"c"+(now).toString(36), title:"달리기", icon:"🏃", color:"#43d9a3", unit:"회", goal:0, dailyReset:true, resetTime:4, type:"count", days:[0,1,2,3,4,5,6], createdAt:now },
+    { id:"c"+(now).toString(36), title:"달리기", icon:"🏃", color:"#43d9a3", unit:"", goal:5, dailyReset:true, resetTime:4, type:"distance", days:[0,1,2,3,4,5,6], createdAt:now },
     { id:"c"+(now+1).toString(36), title:"물 마시기", icon:"💧", color:"#38bdf8", unit:"잔", goal:8, dailyReset:true, resetTime:4, type:"count", days:[0,1,2,3,4,5,6], createdAt:now+1 },
     { id:"c"+(now+2).toString(36), title:"독서", icon:"📖", color:"#fbbf24", unit:"", goal:30, dailyReset:true, resetTime:4, type:"time", days:[1,2,3,4,5], createdAt:now+2 }
   );
@@ -962,7 +970,7 @@ main.addEventListener("click", e=>{
   if(st){ const id=st.dataset.step; change(counterById(id), parseInt(st.dataset.delta,10)); refreshCounter(id); haptic(6); return; }
   // amount add/sub (inside expand)
   const am = t.closest("[data-amt]");
-  if(am){ const id=am.dataset.amt; const sign=parseInt(am.dataset.sign,10); const inp=document.querySelector(`[data-amtinput="${id}"]`); const n=Math.abs(parseInt(inp.value,10)||0); if(n>0){ change(counterById(id), sign*n); refreshCounter(id); haptic(8); inp.value=""; } return; }
+  if(am){ const id=am.dataset.amt; const sign=parseInt(am.dataset.sign,10); const inp=document.querySelector(`[data-amtinput="${id}"]`); const n=Math.abs(parseFloat(inp.value)||0); if(n>0){ change(counterById(id), sign*n); refreshCounter(id); haptic(8); inp.value=""; } return; }
   // big number tap = +step (inside expand)
   const ba = t.closest("[data-tapadd]");
   if(ba){ const id=ba.dataset.tapadd; const c=counterById(id); change(c,stepFor(c)); refreshCounter(id); haptic(8); popBig(id); return; }
