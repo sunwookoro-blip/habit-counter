@@ -370,7 +370,9 @@ function renderHome(){
     return;
   }
   html += `<div class="list">`;
-  state.counters.forEach(c => { html += cardHTML(c); });
+  const activeC = state.counters.filter(c => isActiveDay(c, logicalTodayDate(c.resetTime)));
+  const restC   = state.counters.filter(c => !isActiveDay(c, logicalTodayDate(c.resetTime)));
+  activeC.concat(restC).forEach(c => { html += cardHTML(c); });
   html += `</div>`;
   main.innerHTML = html;
 }
@@ -624,7 +626,7 @@ function openSheet(id){
     draft = { title:c.title, icon:c.icon, color:c.color, unit:c.unit, goal:c.goal, dailyReset:c.dailyReset, resetTime:c.resetTime, type:c.type||"count", days:(c.days && c.days.length)?c.days.slice():[0,1,2,3,4,5,6] };
     document.getElementById("sheetTitle").textContent = "계수기 편집";
   } else {
-    draft = { title:"", icon:"", color:COLORS[0], unit:"", goal:0, dailyReset:true, resetTime:4, type:"count", days:[0,1,2,3,4,5,6] };
+    draft = { title:"", icon:"", color:COLORS[0], unit:"", goal:0, dailyReset:true, resetTime:3, type:"count", days:[0,1,2,3,4,5,6] };
     document.getElementById("sheetTitle").textContent = "새 계수기";
   }
   renderSheet();
@@ -822,7 +824,7 @@ function renderMenu(){
     </div>
     <hr class="sep">
     <div style="color:var(--muted); font-size:12.5px; line-height:1.6;">
-      습관 카운터 · <b style="color:var(--green)">v21</b> · 로컬 전용 · 로그인/서버 없이 이 기기에만 저장됩니다.<br>
+      습관 카운터 · <b style="color:var(--green)">v22</b> · 로컬 전용 · 로그인/서버 없이 이 기기에만 저장됩니다.<br>
       저장 상태: <b style="color:${storageOK?"var(--green)":"var(--danger)"}">${storageOK?"정상":"제한됨"}</b>
     </div>
   `;
@@ -931,7 +933,7 @@ async function syncToNotion(records, label){
       const d=await postBatch(cfg, records.slice(i,i+20));
       created+=d.created||0; updated+=d.updated||0;
     }
-    setNotionCfg({ lastSync:new Date().toISOString(), lastDay:logicalDay(4) });
+    setNotionCfg({ lastSync:new Date().toISOString(), lastDay:logicalDay(3) });
     toast(`노션 반영됨 · 추가 ${created}, 갱신 ${updated}`);
     const el=document.getElementById("notionLast"); if(el) el.textContent="마지막 전송: "+new Date().toLocaleString("ko-KR");
   }catch(e){ toast("전송 실패: "+e.message); }
@@ -939,7 +941,7 @@ async function syncToNotion(records, label){
 function maybeAutoSync(){
   const cfg=getNotionCfg();
   if(!cfg.auto || !cfg.url || !cfg.key) return;
-  if(cfg.lastDay === logicalDay(4)) return;
+  if(cfg.lastDay === logicalDay(3)) return;
   syncToNotion(buildSyncPayload(2,true), "자동 전송");
 }
 
@@ -947,9 +949,9 @@ function maybeAutoSync(){
 function seedExamples(){
   const now = Date.now();
   state.counters.push(
-    { id:"c"+(now).toString(36), title:"달리기", icon:"🏃", color:"#43d9a3", unit:"", goal:5, dailyReset:true, resetTime:4, type:"distance", days:[0,1,2,3,4,5,6], createdAt:now },
-    { id:"c"+(now+1).toString(36), title:"물 마시기", icon:"💧", color:"#38bdf8", unit:"잔", goal:8, dailyReset:true, resetTime:4, type:"count", days:[0,1,2,3,4,5,6], createdAt:now+1 },
-    { id:"c"+(now+2).toString(36), title:"독서", icon:"📖", color:"#fbbf24", unit:"", goal:30, dailyReset:true, resetTime:4, type:"time", days:[1,2,3,4,5], createdAt:now+2 }
+    { id:"c"+(now).toString(36), title:"달리기", icon:"🏃", color:"#43d9a3", unit:"", goal:5, dailyReset:true, resetTime:3, type:"distance", days:[0,1,2,3,4,5,6], createdAt:now },
+    { id:"c"+(now+1).toString(36), title:"물 마시기", icon:"💧", color:"#38bdf8", unit:"잔", goal:8, dailyReset:true, resetTime:3, type:"count", days:[0,1,2,3,4,5,6], createdAt:now+1 },
+    { id:"c"+(now+2).toString(36), title:"독서", icon:"📖", color:"#fbbf24", unit:"", goal:30, dailyReset:true, resetTime:3, type:"time", days:[1,2,3,4,5], createdAt:now+2 }
   );
   save(); render(); toast("예시를 추가했어요");
 }
@@ -1025,13 +1027,18 @@ function pointerUpDrag(e){
   window.removeEventListener("pointermove", pointerMoveDrag);
   window.removeEventListener("pointerup", pointerUpDrag);
   window.removeEventListener("pointercancel", pointerUpDrag);
+  if(!dragMoved){ dragState = null; return; }   // a tap on the handle (no drag) → do nothing
   const y = e.clientY;
-  const others = rects.filter(r=>r.id!==id);
-  let insertAt = others.length;
-  for(let i=0;i<others.length;i++){ if(y < others[i].mid){ insertAt=i; break; } }
+  const others = rects.filter(r=>r.id!==id);   // in displayed order
+  let beforeId = null;
+  for(let i=0;i<others.length;i++){ if(y < others[i].mid){ beforeId = others[i].id; break; } }
   const arr = state.counters;
-  const [item] = arr.splice(fromIndex,1);
-  arr.splice(insertAt,0,item);
+  const fi = arr.findIndex(c=>c.id===id);
+  if(fi!==-1){
+    const [item] = arr.splice(fi,1);
+    if(beforeId===null){ arr.push(item); }
+    else { const bi = arr.findIndex(c=>c.id===beforeId); arr.splice(bi<0?arr.length:bi, 0, item); }
+  }
   dragState = null;
   save(); renderHome();
   haptic(10);
@@ -1045,8 +1052,8 @@ document.getElementById("sheetClose").onclick = closeSheet;
 document.querySelectorAll("nav.tabs button[data-tab]").forEach(b=> b.onclick=()=>setTab(b.dataset.tab));
 
 /* re-render on day rollover / focus so daily counters visually reset */
-let lastDayCheck = logicalDay(4);
-setInterval(()=>{ const d=logicalDay(4); if(d!==lastDayCheck){ lastDayCheck=d; if(currentTab==="home") renderHome(); else renderHistory(); } }, 30000);
+let lastDayCheck = logicalDay(3);
+setInterval(()=>{ const d=logicalDay(3); if(d!==lastDayCheck){ lastDayCheck=d; if(currentTab==="home") renderHome(); else renderHistory(); } }, 30000);
 document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) render(); });
 
 /* ---------- service worker (offline) ---------- */
